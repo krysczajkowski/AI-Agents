@@ -37,7 +37,7 @@ tools = [{
     "type": "function",
     "function": {
         "name": "get_user_info",
-        "description": "Get any information about the user.",
+        "description": "Retrieve and return any stored information about the user. This function should be called whenever the query requires details about the user, even if the request is indirect or implicit. For example, if the user asks for opinions on their hobbies, preferences, or personal traits, this function should be invoked to fetch the relevant data.",
         "parameters": {
             "type": "object",
             "properties": {

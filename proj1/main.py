@@ -110,6 +110,7 @@ Do not provide any additional content beyond the key name.
     return result
 
 
+# Add information about the user to the .json db
 def add_user_info(information, key_name):
     add_info_prompt = """
 You are an intelligent system that analyzes JSON structures containing information about the user. You will be given a key and a piece of information, and your goal is to extract the relevant value(s) from the information and attach them to the key. The output must be a list of strings (even if there is only one value).
@@ -140,18 +141,19 @@ AI: ['Warsaw']
 
     parsed_result = completion.choices[0].message.parsed  
 
-    # Wczytanie danych z pliku JSON
+    # Load json database
     with open('user_info.json', 'r', encoding='utf-8') as file:
         data = json.load(file)
 
-    # Dodanie nowego członu (klucz-wartość)
+    # Add new data
     data[key_name] = parsed_result.values[0] if len(parsed_result.values) == 1 else parsed_result.values
 
-    # Zapisanie zmodyfikowanych danych z powrotem do pliku JSON
+    # Save modified data to json file
     with open('user_info.json', 'w', encoding='utf-8') as file:
         json.dump(data, file, ensure_ascii=False, indent=4)
 
 
+# Update information about the user in the .json db
 def update_user_info(information, key_name):
     update_info_prompt = """
 You are an intelligent system that analyzes JSON structures containing information about the user. You will be given a key, the current value associated with that key (which may be a single string or a list of strings), and a new piece of information. Your goal is to intelligently update the value based on the new information.
@@ -174,7 +176,7 @@ information: User's name is Bartek.
 AI: ['Bartek']
 """
     
-    # Wczytanie danych z pliku JSON
+    # Load data from json file
     with open('user_info.json', 'r', encoding='utf-8') as file:
         data = json.load(file)
 
@@ -186,16 +188,19 @@ AI: ['Bartek']
         ],
         response_format=UpdateInformation
     )
-
     parsed_result = completion.choices[0].message.parsed
+
+    # Update the data
     data[key_name] = parsed_result.values[0] if len(parsed_result.values) == 1 else parsed_result.values
 
-    # Zapisanie zmodyfikowanych danych z powrotem do pliku JSON
+    # Save modified data
     with open('user_info.json', 'w', encoding='utf-8') as file:
         json.dump(data, file, ensure_ascii=False, indent=4)
 
 
+# Save informations about the user - decide if update or add new data
 def save_user_info(information):
+    # Get a list of keys from a json db
     with open("user_info.json", "r") as memory:
         memory_text = memory.read()
         memory_json = json.loads(memory_text)
@@ -232,22 +237,21 @@ def call_function(name, args):
     if name == "save_user_info":
         return save_user_info(**args)
 
-def ask_chat(user_msg):
-    system_prompt = "Your goal is to shortly answer to users message."
-    messages=[
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_msg}
-    ]
+def ask_chat(global_chat_history, user_msg):
+    local_chat_history = []
+
+    global_chat_history.append({"role": "user", "content": user_msg})
+    local_chat_history.append({"role": "user", "content": user_msg})
 
     completion = client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=messages,
+        messages=global_chat_history,
         tools=tools
     )
 
     # Add the tool_calls to context
     assistant_message = completion.choices[0].message
-    messages.append(assistant_message)
+    local_chat_history.append(assistant_message)
 
     if completion.choices[0].message.tool_calls is not None:
         flag = True
@@ -263,7 +267,7 @@ def ask_chat(user_msg):
             print(f"### Executing function: {name}, with args: {args} ###")
             result = call_function(name, args)
             print(f"Result: {result}")
-            messages.append({
+            local_chat_history.append({
                 "role": "tool",
                 "tool_call_id": tool_call.id,
                 "content": result
@@ -271,18 +275,23 @@ def ask_chat(user_msg):
 
         completion = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=messages,
+            messages=local_chat_history,
             tools=tools
         )
 
         if completion.choices[0].message.tool_calls is None:
             break
 
+    global_chat_history.append({"role": "assistant", "content": completion.choices[0].message.content})
     return completion.choices[0].message.content
 
 
 print("Type your message to chat-gpt:")
 iters = 0
+
+system_prompt = "Your goal is to shortly answer to users message."
+chat_history = [{"role": "system", "content": system_prompt}]
+
 while True:
     iters += 1
     user_msg = input("User: ")
@@ -291,7 +300,7 @@ while True:
         break
 
     # Chat's answer
-    print(f"AI: {ask_chat(user_msg)}")
+    print(f"AI: {ask_chat(chat_history, user_msg)}")
 
     # Emergency break
     if iters >=15:

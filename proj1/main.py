@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import os
 import json
 from pydantic import BaseModel
+from datetime import datetime
 
 load_dotenv()
 
@@ -73,6 +74,19 @@ tools = [{
         },
         "strict": True
     }
+}, {
+    "type": "function",
+    "function": {
+        "name": "check_current_time",
+        "description": "Get current date, time and day of the week.",
+        "parameters": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+            "additionalProperties": False
+        },
+        "strict": True
+    }
 }]
 
 
@@ -108,7 +122,6 @@ Do not provide any additional content beyond the key name.
         result += f"{el.key}: {memory_json[el.key]}\n"
 
     return result
-
 
 # Add information about the user to the .json db
 def add_user_info(information, key_name):
@@ -151,7 +164,6 @@ AI: ['Warsaw']
     # Save modified data to json file
     with open('user_info.json', 'w', encoding='utf-8') as file:
         json.dump(data, file, ensure_ascii=False, indent=4)
-
 
 # Update information about the user in the .json db
 def update_user_info(information, key_name):
@@ -197,7 +209,6 @@ AI: ['Bartek']
     with open('user_info.json', 'w', encoding='utf-8') as file:
         json.dump(data, file, ensure_ascii=False, indent=4)
 
-
 # Save informations about the user - decide if update or add new data
 def save_user_info(information):
     # Get a list of keys from a json db
@@ -230,12 +241,33 @@ You are an intelligent system that analyzes JSON structures containing informati
 
     return "User information updated."
 
+def check_current_time():
+    # Get the current date and time
+    now = datetime.now()
+
+    # Format the date as day-month-year
+    date_str = now.strftime("%d-%m-%Y")
+
+    # Get the exact time
+    time_str = now.strftime("%H:%M:%S")
+
+    # Get the day of the week
+    day_of_week = now.strftime("%A")
+
+    result = f"""
+    Current date: {date_str} (day-month-year)
+    Current time: {time_str}
+    Day of the week: {day_of_week}"""
+    return result
+
 """ Functions """
 def call_function(name, args):
     if name == "get_user_info":
         return get_user_info(**args)
     if name == "save_user_info":
         return save_user_info(**args)
+    if name == "check_current_time":
+        return check_current_time()
 
 def ask_chat(global_chat_history, user_msg):
     local_chat_history = []
@@ -278,6 +310,9 @@ def ask_chat(global_chat_history, user_msg):
             messages=local_chat_history,
             tools=tools
         )
+
+        assistant_message = completion.choices[0].message
+        local_chat_history.append(assistant_message)
 
         if completion.choices[0].message.tool_calls is None:
             break

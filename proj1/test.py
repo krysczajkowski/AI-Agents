@@ -17,6 +17,9 @@ time_str = now.strftime("%H:%M:%S")
 # Get the day of the week
 day_of_week = now.strftime("%A")
 
-print(f"Current date: {date_str}")
-print(f"Current time: {time_str}")
-print(f"Day of the week: {day_of_week}")
+result = f"""
+Current date: {date_str} (day-month-year)
+Current time: {time_str}
+Day of the week: {day_of_week}"""
+
+print(result)

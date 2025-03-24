@@ -4,8 +4,17 @@ import os
 import json
 from pydantic import BaseModel
 from datetime import datetime
+import logging
 
 load_dotenv()
+
+# Logger config
+logging.basicConfig(
+    filename='agent.log',
+    filemode='a',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 client = OpenAI(api_key=os.getenv("OPENAI_KEY"))
 
@@ -284,6 +293,7 @@ def ask_chat(global_chat_history, user_msg):
     # Add the tool_calls to context
     assistant_message = completion.choices[0].message
     local_chat_history.append(assistant_message)
+    logging.info(f"0) local_chat_history={local_chat_history}")
 
     if completion.choices[0].message.tool_calls is not None:
         flag = True
@@ -296,14 +306,17 @@ def ask_chat(global_chat_history, user_msg):
             name = tool_call.function.name
             args = json.loads(tool_call.function.arguments)
 
-            print(f"### Executing function: {name}, with args: {args} ###")
+            logging.info(f"### Executing function: {name}, with args: {args} ###")
+
             result = call_function(name, args)
-            print(f"Result: {result}")
+            # print(f"Result: {result}")
             local_chat_history.append({
                 "role": "tool",
                 "tool_call_id": tool_call.id,
                 "content": result
             })
+
+            logging.info(f"1) local_chat_history={local_chat_history}")
 
         completion = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -313,11 +326,13 @@ def ask_chat(global_chat_history, user_msg):
 
         assistant_message = completion.choices[0].message
         local_chat_history.append(assistant_message)
+        logging.info(f"2) local_chat_history={local_chat_history}")
 
         if completion.choices[0].message.tool_calls is None:
             break
 
     global_chat_history.append({"role": "assistant", "content": completion.choices[0].message.content})
+    logging.info(f"global_chat_history={global_chat_history}")
     return completion.choices[0].message.content
 
 

@@ -1,25 +1,16 @@
-"""
-This file has nothing to do with an agent. 
-I just test solutions here.
-"""
+import logging
 
-from datetime import datetime
+# Konfiguracja loggera do zapisu do pliku
+logging.basicConfig(
+    filename='agent.log',
+    filemode='a',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
-# Get the current date and time
-now = datetime.now()
+# Logujemy informacje dotyczące działania agenta
+logging.info("Agent started working")
 
-# Format the date as day-month-year
-date_str = now.strftime("%d-%m-%Y")
-
-# Get the exact time
-time_str = now.strftime("%H:%M:%S")
-
-# Get the day of the week
-day_of_week = now.strftime("%A")
-
-result = f"""
-Current date: {date_str} (day-month-year)
-Current time: {time_str}
-Day of the week: {day_of_week}"""
-
-print(result)
+# Finalna odpowiedź dla użytkownika, wyświetlana w głównym terminalu
+final_answer = "Hello, this is your answer!"
+print(final_answer)
